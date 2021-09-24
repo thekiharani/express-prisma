@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = ["aggregateApi"]
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  email     String    @unique @db.VarChar(100)
+  firstName String    @db.VarChar(100)
+  lastName  String    @db.VarChar(100)
+  social    Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // relationships
+  courses     CourseEnrollment[]
+  testResults TestResult[]       @relation(name: "results")
+  testsGraded TestResult[]       @relation(name: "graded")
+
+  // table name
+  @@map(name: "users")
+}
+
+model Course {
+  id            String    @id @default(uuid()) @db.VarChar(36)
+  name          String    @db.VarChar(100)
+  courseDetails String?   @db.VarChar(1000)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // relationships
+  members CourseEnrollment[]
+  tests   Test[]
+
+  // table name
+  @@map(name: "courses")
+}
+
+model CourseEnrollment {
+  role      UserRole
+  userId    String    @db.VarChar(36)
+  courseId  String    @db.VarChar(36)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // relationships
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  // composite PK
+
+  // table name
+  @@id([userId, courseId, role])
+  @@index([userId, role])
+  @@map(name: "course_enrollment")
+}
+
+model Test {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  name      String    @db.VarChar(100)
+  date      DateTime
+  courseId  String    @db.VarChar(36)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // relationships
+  course      Course       @relation(fields: [courseId], references: [id])
+  testResults TestResult[]
+
+  // table name
+  @@map(name: "tests")
+}
+
+model TestResult {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  result    Int
+  testId    String    @db.VarChar(36)
+  studentId String    @db.VarChar(36)
+  graderId  String    @db.VarChar(36)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+
+  // relationships
+  test     Test @relation(fields: [testId], references: [id])
+  student  User @relation(name: "results", fields: [studentId], references: [id])
+  gradedBy User @relation(name: "graded", fields: [graderId], references: [id])
+
+  // table name
+  @@map(name: "test_results")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+}
